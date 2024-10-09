@@ -13,18 +13,18 @@ RUN apt-get update \
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 COPY ["Directory.Build.props", "."]
-COPY ["WRG.Products.Combinations.Service/WRG.Products.Combinations.Service.csproj", "WRG.Products.Combinations.Service/"]
-RUN dotnet restore "./WRG.Products.Combinations.Service/WRG.Products.Combinations.Service.csproj"
+COPY ["WRG.Products.Available.Service/WRG.Products.Available.Service.csproj", "WRG.Products.Available.Service/"]
+RUN dotnet restore "./WRG.Products.Available.Service/WRG.Products.Available.Service.csproj"
 COPY . .
-WORKDIR "/src/WRG.Products.Combinations.Service"
-RUN dotnet build "./WRG.Products..Service.csproj" -c $BUILD_CONFIGURATION -o /app/build
+WORKDIR "/src/WRG.Products.Available.Service"
+RUN dotnet build "./WRG.Products.Available.Service.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "./WRG.Products.Combinations.Service.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=true
+RUN dotnet publish "./WRG.Products.Available.Service.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=true
 
 FROM mcr.microsoft.com/dotnet/runtime-deps:8.0 AS final
 WORKDIR /app
 EXPOSE 8080
 COPY --from=publish /app/publish .
-ENTRYPOINT ["./WRG.Products.Combinations.Service"]
+ENTRYPOINT ["./WRG.Products.Available.Service"]

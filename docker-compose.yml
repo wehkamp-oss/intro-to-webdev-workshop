@@ -41,7 +41,7 @@ services:
       - DOTNET_ENVIRONMENT=Development
       - ConnectionStrings__Postgres=Database=oms;User ID=postgres;Password=postgres;Host=wrg.db;Port=5432; # Port should be 5432 here because it's from within the docker network. From the outside, 5433 should be used
     ports:
-      - 8080:8080
+      - "8080:8080"
 
 volumes:
   postgres_data:
