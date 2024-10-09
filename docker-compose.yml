@@ -1,0 +1,48 @@
+version: '3.7'
+name: atlas-wrg-webdev-workshop
+services:
+
+  wrg.db:
+    container_name: wrg.db
+    image: postgres:latest
+    environment:
+      - POSTGRES_DB=users
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - "postgres_data:/var/lib/postgresql/data"
+    ports:
+      - 5433:5432
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 2000M
+        reservations:
+          cpus: '0.1'
+          memory: 300M
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 1s
+      timeout: 5s
+      retries: 10
+
+  # WRG Products Service
+  wrg-products-service:
+    container_name: wrg-products-service
+    build:
+      context: .
+      dockerfile: WrgProducts.Dockerfile
+    image: wrg.products:latest
+    depends_on:
+      wrg.db:
+        condition: service_healthy
+    environment:
+      - DOTNET_ENVIRONMENT=Development
+      - ConnectionStrings__Postgres=Database=oms;User ID=postgres;Password=postgres;Host=wrg.db;Port=5432; # Port should be 5432 here because it's from within the docker network. From the outside, 5433 should be used
+    ports:
+      - 8080:8080
+
+volumes:
+  postgres_data:
+    driver: local

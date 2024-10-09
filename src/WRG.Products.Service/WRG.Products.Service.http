@@ -1,0 +1,11 @@
+@WRG.Products.Service_HostAddress = http://localhost:5177
+
+GET {{WRG.Products.Service_HostAddress}}/products/
+Accept: application/json
+
+###
+
+GET {{WRG.Products.Service_HostAddress}}/products/17151519/000
+Accept: application/json
+
+###
