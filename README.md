@@ -48,12 +48,146 @@ If all of this was successful, we can continue to the next step. If not, you mus
 
 Since we will be following a scenario that requires us to create a service that talks to the existing API but does something the existing API cannot do on its own, we will need a working secondary project.
 
-We have provided a placeholder project that will be a suitable starting point, it has been provisioned with:
+We have provided a placeholder project (two actually) that will be a suitable starting point, it has been provisioned with:
 
 - A dotnet 8 configuration
 - Targets and configurations to build a container on demand
 - Some sample endpoints that do serve as placeholders
 - Swagger so you get a nice test interface for free
+
+You can run this as a container, or as an in-IDE binary and it will work all the same. During development it doesn't matter, but it has to be able to be produced as a container since that is what CI and CD in the real world is going to need, and it is what other teams you would collaborate with would also need.
+Start the project and you should be provided with a running API endpoint that shows some demo project from Microsoft (likely the ToDo one).
+
+This is where you will be adding the code for the workshop, and if needed, you can look at the code for the pre-built 'product' service for (limited) inspiration.
+
+### Third Task: Start implementing!
+
+The first thing we're going to do is build an API service that has a job that seems simple at first: given an order, find out if the order can actually be fulfilled.
+A fake order might look like this:
+
+```json
+{
+    "customer": "458212368",
+    "salesSegment": 1,
+    "orderLines": [
+      {
+        "productNumber": 17151519,
+        "quantity": 2,
+        "sizeCode": "001"
+
+      },
+      {
+        "productNumber": 17151520,
+        "quantity": 1,
+        "sizeCode": "002"
+      },
+      {
+        "productNumber": 17151524,
+        "quantity": 1,
+        "sizeCode": "001"
+      }
+    ]
+}
+```
+You have to be able to ingest such a paylod in your API on an endpoint: `/order`.
+This will then need to be input-validated by a method of your choice and then used to query the product API we provided for product information.
+
+This is something you can also do using a method of your choice, but a simple HTTP client and some JSON handing might be simple enough.
+
+When requesting information about a product, you will either get that information, or you will be informed the information is not available.
+If the information is available, it will look like this:
+
+```json
+ {
+    "name": "Adidas Ultraboost",
+    "brand": "Adidas",
+    "productNumber": "17151523",
+    "sizeCode": "004",
+    "salesSegment": 3,
+    "ean": "5702017156064",
+    "articleGroup": "Shoes",
+    "supplierId": "e7a58e97-4b5e-4fff-bf41-46c803f35ade",
+    "shippingMethod": 1,
+    "purchasePrice": 90,
+    "salesPrices": [
+      {
+        "salesSegment": 1,
+        "salesPrice": 130
+      },
+      {
+        "salesSegment": 2,
+        "salesPrice": 150
+      }
+    ],
+    "creationDateTime": "2024-09-23T22:39:58.243948+02:00",
+    "mutationDateTime": "2024-09-29T23:19:58.243949+02:00"
+}
+```
+
+You can use this information for each orderLine to check the following:
+
+- If the product exists, is it valid for the salesSegment the customer is ordering for?
+  - The salesSegment in the product is a sum of available salesSegments
+  - The actual availability of a salesSegment is also described in the salesPrices array
+- We can also see the shippingMethod, we have to keep track of which ones we have seen
+
+If all produces listed in the order exist, and there are no mis-matches in the salesSegments, return your findings.
+
+The findings must also be in JSON format, which looks like this for a bad order:
+
+```json
+ {
+    "canOrder": false,
+    "errors": [
+      {
+        "productNumber": 17151519,
+        "reason": "product configuration does not exist"
+      },
+      {
+        "productNumber": 17151520,
+        "reason": "sales segment not available"
+      }
+    ]
+}
+```
+
+and like this for an order we can process:
+
+```json
+ {
+    "canOrder": true,
+    "orders": [
+      {
+        "logisticsOrderNumber": 10000001,
+        "shippingMethod": 1
+      },
+      {
+        "logisticsOrderNumber": 10000002,
+        "shippingMethod": 2
+      }
+    ]
+}
+```
+
+For the `logisticsOrderNumber` you can make up any sequence you like at this stage.
+
+
+### Extra Tasks: There is always more to explore
+
+Imagine the following: while we now know if an order is in theory something we can process, we don't know if we can actually ship it, or in what shape.
+There are some pieces missing:
+
+- Stock information, keeping track of which items in which sizes we have in stock?
+- Shipping capacity, which shipping methods are still available today?
+- For both: can we do a split delivery where some parts are shipped now and other parts are shipped later?
+
+Assume this information is managed by different teams with different dependencies and stakeholders.
+They will want to manage their own information flows and processes:
+
+- A service about stock and supplier input will not be owned by the team that does customer orders
+- A logistics capacity planning service will be owned by the logistics center and nobody else
+
+This means at least two extra services would need to be created. One to keep track of delivery options, another for stock.
 
 ## Common Mistakes
 
